@@ -15,16 +15,18 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Properties map[string]string
 
 type WebDavClient struct {
-	Host      string
-	Port      int
-	Login     string
-	Password  string
-	DefFolder string
+	Host       string
+	Port       int
+	Login      string
+	Password   string
+	DefFolder  string
+	httpClient *http.Client
 }
 
 // NewClient creates a pointer to an instance of WebDavClient.
@@ -35,6 +37,9 @@ func NewClient(host string) *WebDavClient {
 		Login:     "",
 		Password:  "",
 		DefFolder: "",
+		httpClient: &http.Client{
+			Timeout: 120 * time.Second,
+		},
 	}
 }
 
@@ -109,7 +114,7 @@ func (clnt *WebDavClient) Get(uri string) ([]byte, error) {
 		return nil, err
 	}
 
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := clnt.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +140,7 @@ func (clnt *WebDavClient) Put(uri string, data io.Reader) error {
 		return err
 	}
 
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := clnt.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -152,7 +157,7 @@ func (clnt *WebDavClient) Delete(uri string) error {
 		return err
 	}
 
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := clnt.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -168,8 +173,7 @@ func (clnt *WebDavClient) MkCol(uri string) error {
 	if err != nil {
 		return err
 	}
-
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := clnt.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -187,7 +191,7 @@ func (clnt *WebDavClient) Copy(uri, destURI string) error {
 	}
 	req.Header.Set("Destination", clnt.buildConnectionString()+clnt.DefFolder+destURI)
 
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := clnt.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -205,7 +209,7 @@ func (clnt *WebDavClient) Move(uri, destURI string) error {
 	}
 	req.Header.Set("Destination", clnt.buildConnectionString()+clnt.DefFolder+destURI)
 
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := clnt.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -226,7 +230,7 @@ func (clnt *WebDavClient) getProps(uri, propfind string) (map[string]Properties,
 	req.Header.Set("Content-Type", "application/xml")
 	req.Header.Set("Depth", "1")
 
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := clnt.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +322,7 @@ func (clnt *WebDavClient) Exists(uri string) (bool, error) {
 		return false, err
 	}
 
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := clnt.httpClient.Do(req)
 	if err != nil {
 		return false, err
 	}
